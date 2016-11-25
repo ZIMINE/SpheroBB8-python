@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# encoding: utf-8
 import pygame
 from pygame.locals import *
 from sys import exit
@@ -14,9 +16,12 @@ bb8.connect()
 pygame.init()
 screen = pygame.display.set_mode((256, 275), 0, 32)
 pygame.display.set_caption("BB8 Drive")
+#print pygame.joystick.get_count()
 
-pygame.joystick.init()
-pygame.joystick.Joystick(0).init()
+#pygame.joystick.init() # 没有操作杆
+#print pygame.joystick.get_count() # 0
+#pygame.joystick.Joystick(0).init()
+
 
 
 bb8.set_rgb_led(0, 0, 0, 0, False)
@@ -52,7 +57,7 @@ def draw_axis(surface, x, y, axis_x, axis_y, size):
     step = size / float(num_lines)
     joystickCenterX = 128
     joystickCenterY = 128
-    
+
 
     # Draws grid
     for n in range(num_lines):
@@ -98,7 +103,8 @@ def draw_axis(surface, x, y, axis_x, axis_y, size):
 
     sendRollCommand(speed, heading)
 
-    
+
+    '''
     if joystick.get_button(6):
         bb8.roll(0, heading, 0, False)
 
@@ -110,7 +116,7 @@ def draw_axis(surface, x, y, axis_x, axis_y, size):
 
     if joystick.get_button(5) == 0:
         bb8.set_back_led(0, False)
-
+    '''
 
     # Displays the joystick X & Y coordinates to screen
     message = "X: {}  Y: {} Speed: {} Heading: {}".format(draw_x, draw_y, speed, heading)
@@ -130,7 +136,7 @@ def draw_axis(surface, x, y, axis_x, axis_y, size):
 while True:
     clock.tick(10)
 
-    joystick = pygame.joystick.Joystick(0)
+    #joystick = pygame.joystick.Joystick(0) # 操作杆
 
     for event in pygame.event.get():
         if event.type == QUIT:
@@ -150,13 +156,15 @@ while True:
 
     # Draw all the axes (analog sticks)
     x = 0
-    axis_x = joystick.get_axis(0)
-    axis_y = joystick.get_axis(1)
+    #axis_x = joystick.get_axis(0)
+    axis_x = 1# 用其他东西提供数据
+    #axis_y = joystick.get_axis(1)
+    axis_y = 1#joystick.get_axis(1)
 
 
 
     draw_axis(screen, x, 0, axis_x, axis_y, axis_size)
     x += axis_size
-    
+
 
     pygame.display.update()
