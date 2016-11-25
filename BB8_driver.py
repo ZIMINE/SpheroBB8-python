@@ -1,7 +1,8 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+# encoding: utf-8
 
 
-from bluepy import btle
+from bluepy import btle # 源码安装，pip安装会有问题
 # import bluetooth
 import sys
 import struct
@@ -9,9 +10,16 @@ import time
 import operator
 import threading
 
+
+'''
+借这个项目学习与硬件的通信协议设计(blockly4pi)
+'''
+
 # These are the message response code that can be return by Sphero.
+# 返回值
+# dict(a=1)  >>> {'a': 1}
 MRSP = dict(
-    ORBOTIX_RSP_CODE_OK=0x00,  # Command succeeded
+    ORBOTIX_RSP_CODE_OK=0x00,  # Command succeeded  # 0x ：十六进制 0xAB(大小写无所谓) -> 171 (10*16+11)
     ORBOTIX_RSP_CODE_EGEN=0x01,  # General, non-specific error
     ORBOTIX_RSP_CODE_ECHKSUM=0x02,  # Received checksum failure
     ORBOTIX_RSP_CODE_EFRAG=0x03,  # Received command fragment
@@ -28,10 +36,11 @@ MRSP = dict(
     ORBOTIX_RSP_CODE_MSG_TIMEOUT=0x35)  # Msg state machine timed out
 
 # ID codes for asynchronous packets
+# 异步的数据包
 IDCODE = dict(
-    PWR_NOTIFY=chr(0x01),  # Power notifications
+    PWR_NOTIFY=chr(0x01),  # Power notifications .  chr(0x01)  is '\x01'
     LEVEL1_DIAG=chr(0x02),  # Level 1 Diagnostic response
-    DATA_STRM=chr(0x03),  # Sensor data streaming
+    DATA_STRM=chr(0x03),  # Sensor data streaming #传感器数据
     CONFIG_BLOCK=chr(0x04),  # Config block contents
     SLEEP=chr(0x05),  # Pre-sleep warning (10 sec)
     MACRO_MARKERS=chr(0x06),  # Macro markers
@@ -141,6 +150,7 @@ class BTInterface(btle.DefaultDelegate):
         self.seq = 0
 
         # Attribute UUIDs are identical to Ollie.
+        # 所有的bb8是相同的! 这样软件才能一致? 批量化生产？
         self.antidos = self.getSpheroCharacteristic('2bbd')
         self.wakecpu = self.getSpheroCharacteristic('2bbf')
         self.txpower = self.getSpheroCharacteristic('2bb2')
@@ -163,7 +173,7 @@ class BTInterface(btle.DefaultDelegate):
         for s in self.peripheral.getServices():
             print s
             for c in s.getCharacteristics():
-                print c, hex(c.handle)
+                print c, hex(c.handle) # 转换一个整数对象为十六进制的字符串
 
     def cmd(self, did, cid, data=[], answer=True, resetTimeout=True):
         # Commands are as specified in Sphero API 1.50 PDF.
@@ -242,7 +252,7 @@ class Sphero(threading.Thread):
         self.bt = None
         # Use "sudo hcitool lescan" to find BB8's MAC address input it at deviceAddress =
         #self.deviceAddress = 'DF:79:DD:9C:B6:1D'
-        self.deviceAddress = 'DD:8E:F1:CA:B8:9F'
+        self.deviceAddress = 'DD:8E:F1:CA:B8:9F' # my bb8
 
         self.shutdown = False
         self.is_connected = False
@@ -299,6 +309,7 @@ class Sphero(threading.Thread):
         del self._sync_callback_dict[callback_type]
 
     def clamp(self, n, minn, maxn):
+        # 如果超过边界则返回边界
         return max(min(maxn, n), minn)
 
     def ping(self, response):
@@ -307,6 +318,7 @@ class Sphero(threading.Thread):
         Client and that Sphero is awake and dispatching commands.
 
         :param response: request response back from Sphero.
+        类比linux的ping(检测是否在线)
         """
         self.send(self.pack_cmd(REQ['CMD_PING'], []), response)
 
@@ -405,10 +417,11 @@ class Sphero(threading.Thread):
         :param macro: macro number to run when re-awakened.
         :param response: request response back from Sphero.
         """
-        self.send(self.pack_cmd(REQ['CMD_SLEEP'], [(time >> 8), (time & 0xff), macro]), response)
+        self.send(self.pack_cmd(REQ['CMD_SLEEP'], [(time >> 8), (time & 0xff), macro]), response) # >> 8是啥 移位？
 
     def run_l1_diags(self, response):
         """
+        # 开发者级别
         This is a developer-level command to help diagnose aberrant
         behavior. Most system counters, process flags, and system states
         are decoded into human readable ASCII. There are two responses to
@@ -488,6 +501,7 @@ class Sphero(threading.Thread):
 
     def set_heading(self, heading, response):
         """
+        # 改变朝向
         This allows the client to adjust the orientation of Sphero by
         commanding a new reference heading in degrees, which ranges from 0
         to 359. You will see the ball respond immediately to this command
@@ -660,6 +674,7 @@ class Sphero(threading.Thread):
 
     def set_rgb_led(self, red, green, blue, save, response):
         """
+        背景灯
         This allows you to set the RGB LED color. The composite value is
         stored as the "application LED color" and immediately driven to
         the LED (if not overridden by a macro or orbBasic operation). If
@@ -697,6 +712,7 @@ class Sphero(threading.Thread):
 
     def roll(self, speed, heading, state, response):
         """
+        # 滚动
         This commands Sphero to roll along the provided vector. Both a
         speed and a heading are required; the latter is considered
         relative to the last calibrated direction. A state Boolean is also
@@ -744,13 +760,14 @@ class Sphero(threading.Thread):
 
     def send(self, data, response):
         """
+        # 实际发送指令
         Packets are sent from Client -> Sphero in the following byte format::
 
           -------------------------------------------------------
           | SOP1 | SOP2 | DID | CID | SEQ | DLEN | <data> | CHK |
           -------------------------------------------------------
 
-        * SOP1 - start packet 1 - Always 0xff.
+        * SOP1 - start packet 1 - Always 0xff. # 标记开始
         * SOP2 - start packet 2 - Set to 0xff when an acknowledgement is\
           expected, 0xfe otherwise.
         * DID - Device ID
@@ -767,7 +784,7 @@ class Sphero(threading.Thread):
         """
         # compute the checksum
         # modulo 256 sum of data bit inverted
-        checksum = ~ sum(data) % 256
+        checksum = ~ sum(data) % 256 # % 取模 ~  取反。~ 1 -> -2  1的二进制表示就是00000001，取反之后就是11111110
         # if expecting response back from the sphero
         if response:
             output = REQ['WITH_RESPONSE'] + data + [checksum]

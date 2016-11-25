@@ -7,6 +7,8 @@ Now even better with a python API library!
 Use "sudo hcitool lescan" to find BB8's MAC address 
 input it at "`deviceAddress =`" (line 244) in the Sphero class in BB8_driver.py
 
+(我是用rpi3 bluetoothcl的scan on取得)
+
 **
 
 ***Included Scripts:***
@@ -18,7 +20,7 @@ A simple program that connects to BB8 and flashes the internal RGB LED red to gr
 **BB8joyDrive.py**
 *requires PyGame library* 
 
-Allow you to drive BB8 with a joystick/gamepad.
+Allow you to drive BB8 with a joystick/gamepad. (需要先连接游戏手柄)
 Shows on screen feedback of analog stick as well as speed and heading
 Currently setup for a Xbox 360 controller.
 
